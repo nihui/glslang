@@ -268,6 +268,7 @@ public:
         gpu_shader_fp64                           = 1 << 9,
         gpu_shader_int16                          = 1 << 10,
         gpu_shader_half_float                     = 1 << 11,
+        nv_gpu_shader5_types                      = 1 << 12,
     } feature;
     void insert(feature f) { features |= f; }
     void erase(feature f) { features &= ~f; }
@@ -1053,7 +1054,8 @@ public:
 
     void mergeGlobalUniformBlocks(TInfoSink& infoSink, TIntermediate& unit, bool mergeExistingOnly);
     void mergeUniformObjects(TInfoSink& infoSink, TIntermediate& unit);
-    void checkStageIO(TInfoSink&, TIntermediate&);
+    void mergeImplicitArraySizes(TInfoSink& infoSink, TIntermediate& unit);
+    void checkStageIO(TInfoSink&, TIntermediate&, EShMessages);
     void optimizeStageIO(TInfoSink&, TIntermediate&);
 
     bool buildConvertOp(TBasicType dst, TBasicType src, TOperator& convertOp) const;
@@ -1106,17 +1108,20 @@ public:
     // Certain explicit conversions are allowed conditionally
     bool getArithemeticInt8Enabled() const {
         return numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types) ||
+               numericFeatures.contains(TNumericFeatures::nv_gpu_shader5_types) ||
                numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types_int8);
     }
     bool getArithemeticInt16Enabled() const {
         return numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types) ||
                numericFeatures.contains(TNumericFeatures::gpu_shader_int16) ||
+               numericFeatures.contains(TNumericFeatures::nv_gpu_shader5_types) ||
                numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types_int16);
     }
 
     bool getArithemeticFloat16Enabled() const {
         return numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types) ||
                numericFeatures.contains(TNumericFeatures::gpu_shader_half_float) ||
+               numericFeatures.contains(TNumericFeatures::nv_gpu_shader5_types) ||
                numericFeatures.contains(TNumericFeatures::shader_explicit_arithmetic_types_float16);
     }
     void updateNumericFeature(TNumericFeatures::feature f, bool on)
@@ -1124,8 +1129,14 @@ public:
 
 protected:
     TIntermSymbol* addSymbol(long long Id, const TString&, const TString&, const TType&, const TConstUnionArray&, TIntermTyped* subtree, const TSourceLoc&);
-    void error(TInfoSink& infoSink, const char*, EShLanguage unitStage = EShLangCount);
-    void warn(TInfoSink& infoSink, const char*, EShLanguage unitStage = EShLangCount);
+    void error(TInfoSink& infoSink, const TSourceLoc* loc, EShMessages messages, const char*, EShLanguage unitStage = EShLangCount);
+    void error(TInfoSink& infoSink, const char* message, EShLanguage unitStage = EShLangCount) {
+        error(infoSink, nullptr, EShMsgDefault, message, unitStage);
+    }
+    void warn(TInfoSink& infoSink, const TSourceLoc* loc, EShMessages, const char*, EShLanguage unitStage = EShLangCount);
+    void warn(TInfoSink& infoSink, const char* message, EShLanguage unitStage = EShLangCount) {
+        warn(infoSink, nullptr, EShMsgDefault, message, unitStage);
+    }
     void mergeCallGraphs(TInfoSink&, TIntermediate&);
     void mergeModes(TInfoSink&, TIntermediate&);
     void mergeTrees(TInfoSink&, TIntermediate&);
