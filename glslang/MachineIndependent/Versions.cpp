@@ -323,6 +323,7 @@ void TParseVersions::initializeExtensionBehavior()
     // QCOM
     extensionBehavior[E_GL_QCOM_image_processing]                    = EBhDisable;
     extensionBehavior[E_GL_QCOM_image_processing2]                   = EBhDisable;
+    extensionBehavior[E_GL_QCOM_tile_shading]                        = EBhDisable;
 
     // AEP
     extensionBehavior[E_GL_ANDROID_extension_pack_es31a]             = EBhDisable;
@@ -380,6 +381,8 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_texture_offset_non_const]    = EBhDisable;
     extensionBehavior[E_GL_EXT_nontemporal_keyword]         = EBhDisable;
     extensionBehavior[E_GL_EXT_bfloat16]                    = EBhDisable;
+    extensionBehavior[E_GL_EXT_float_e4m3]                  = EBhDisable;
+    extensionBehavior[E_GL_EXT_float_e5m2]                  = EBhDisable;
 
     // OVR extensions
     extensionBehavior[E_GL_OVR_multiview]                = EBhDisable;
@@ -460,6 +463,7 @@ void TParseVersions::getPreamble(std::string& preamble)
 
             "#define GL_QCOM_image_processing 1\n"
             "#define GL_QCOM_image_processing2 1\n"
+            "#define GL_QCOM_tile_shading 1\n"
             ;
 
             if (version >= 300) {
@@ -590,6 +594,7 @@ void TParseVersions::getPreamble(std::string& preamble)
 
             "#define GL_QCOM_image_processing 1\n"
             "#define GL_QCOM_image_processing2 1\n"
+            "#define GL_QCOM_tile_shading 1\n"
 
             "#define GL_EXT_shader_explicit_arithmetic_types 1\n"
             "#define GL_EXT_shader_explicit_arithmetic_types_int8 1\n"
@@ -616,6 +621,8 @@ void TParseVersions::getPreamble(std::string& preamble)
 
             "#define GL_EXT_integer_dot_product 1\n"
             "#define GL_EXT_bfloat16 1\n"
+            "#define GL_EXT_float_e5m2 1\n"
+            "#define GL_EXT_float_e4m3 1\n"
             ;
 
         if (spvVersion.spv == 0) {
@@ -1300,6 +1307,26 @@ void TParseVersions::bfloat16ScalarVectorCheck(const TSourceLoc& loc, const char
     }
 }
 
+void TParseVersions::floate5m2ScalarVectorCheck(const TSourceLoc& loc, const char* op, bool builtIn)
+{
+    if (!builtIn) {
+        const char* const extensions[] = {
+                                           E_GL_EXT_float_e5m2,
+                                         };
+        requireExtensions(loc, sizeof(extensions)/sizeof(extensions[0]), extensions, op);
+    }
+}
+
+void TParseVersions::floate4m3ScalarVectorCheck(const TSourceLoc& loc, const char* op, bool builtIn)
+{
+    if (!builtIn) {
+        const char* const extensions[] = {
+                                           E_GL_EXT_float_e4m3,
+                                         };
+        requireExtensions(loc, sizeof(extensions)/sizeof(extensions[0]), extensions, op);
+    }
+}
+
 // Call for any operation needing GLSL float32 data-type support.
 void TParseVersions::explicitFloat32Check(const TSourceLoc& loc, const char* op, bool builtIn)
 {
@@ -1448,6 +1475,14 @@ void TParseVersions::coopvecCheck(const TSourceLoc& loc, const char* op, bool bu
 {
     if (!builtIn) {
         const char* const extensions[] = {E_GL_NV_cooperative_vector};
+        requireExtensions(loc, sizeof(extensions)/sizeof(extensions[0]), extensions, op);
+    }
+}
+
+void TParseVersions::intattachmentCheck(const TSourceLoc& loc, const char* op, bool builtIn)
+{
+    if (!builtIn) {
+        const char* const extensions[] = {E_GL_QCOM_tile_shading};
         requireExtensions(loc, sizeof(extensions)/sizeof(extensions[0]), extensions, op);
     }
 }

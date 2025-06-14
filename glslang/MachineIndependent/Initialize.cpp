@@ -4034,6 +4034,47 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "bf16vec3   uintBitsToBFloat16EXT(u16vec3 value);"
             "bf16vec4   uintBitsToBFloat16EXT(u16vec4 value);"
 
+            "int8_t  floate5m2BitsToIntEXT(floate5m2_t value);"
+            "i8vec2  floate5m2BitsToIntEXT(fe5m2vec2 value);"
+            "i8vec3  floate5m2BitsToIntEXT(fe5m2vec3 value);"
+            "i8vec4  floate5m2BitsToIntEXT(fe5m2vec4 value);"
+
+            "uint8_t floate5m2BitsToUintEXT(floate5m2_t value);"
+            "u8vec2  floate5m2BitsToUintEXT(fe5m2vec2 value);"
+            "u8vec3  floate5m2BitsToUintEXT(fe5m2vec3 value);"
+            "u8vec4  floate5m2BitsToUintEXT(fe5m2vec4 value);"
+
+            "floate5m2_t intBitsToFloate5m2EXT(int8_t value);"
+            "fe5m2vec2   intBitsToFloate5m2EXT(i8vec2 value);"
+            "fe5m2vec3   intBitsToFloate5m2EXT(i8vec3 value);"
+            "fe5m2vec4   intBitsToFloate5m2EXT(i8vec4 value);"
+
+            "floate5m2_t uintBitsToFloate5m2EXT(uint8_t value);"
+            "fe5m2vec2   uintBitsToFloate5m2EXT(u8vec2 value);"
+            "fe5m2vec3   uintBitsToFloate5m2EXT(u8vec3 value);"
+            "fe5m2vec4   uintBitsToFloate5m2EXT(u8vec4 value);"
+
+            "int8_t  floate4m3BitsToIntEXT(floate4m3_t value);"
+            "i8vec2  floate4m3BitsToIntEXT(fe4m3vec2 value);"
+            "i8vec3  floate4m3BitsToIntEXT(fe4m3vec3 value);"
+            "i8vec4  floate4m3BitsToIntEXT(fe4m3vec4 value);"
+
+            "uint8_t floate4m3BitsToUintEXT(floate4m3_t value);"
+            "u8vec2  floate4m3BitsToUintEXT(fe4m3vec2 value);"
+            "u8vec3  floate4m3BitsToUintEXT(fe4m3vec3 value);"
+            "u8vec4  floate4m3BitsToUintEXT(fe4m3vec4 value);"
+
+            "floate4m3_t intBitsToFloate4m3EXT(int8_t value);"
+            "fe4m3vec2   intBitsToFloate4m3EXT(i8vec2 value);"
+            "fe4m3vec3   intBitsToFloate4m3EXT(i8vec3 value);"
+            "fe4m3vec4   intBitsToFloate4m3EXT(i8vec4 value);"
+
+            "floate4m3_t uintBitsToFloate4m3EXT(uint8_t value);"
+            "fe4m3vec2   uintBitsToFloate4m3EXT(u8vec2 value);"
+            "fe4m3vec3   uintBitsToFloate4m3EXT(u8vec3 value);"
+            "fe4m3vec4   uintBitsToFloate4m3EXT(u8vec4 value);"
+
+            "void saturatedConvertEXT();"
             "\n");
     }
 
@@ -4786,6 +4827,8 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "float", "vec2", "vec4",
                 "float16_t", "f16vec2", "f16vec4",
                 "bfloat16_t", "bf16vec2", "bf16vec4",
+                "floate5m2_t", "fe5m2vec2", "fe5m2vec4",
+                "floate4m3_t", "fe4m3vec2", "fe4m3vec4",
                 "double", "dvec2", "dvec4",
                 "int8_t", "i8vec2", "i8vec4",
                 "int16_t", "i16vec2", "i16vec4",
@@ -5640,6 +5683,16 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n");
     }
 
+    // GL_QCOM_tile_shading
+    if ((profile == EEsProfile && version >= 310) ||
+        (profile != EEsProfile && version >= 460)) {
+        stageBuiltins[EShLangCompute].append(
+            "in highp uvec2 gl_TileOffsetQCOM;"     // GL_QCOM_tile_shading
+            "in highp uvec3 gl_TileDimensionQCOM;"  // GL_QCOM_tile_shading
+            "in highp uvec2 gl_TileApronSizeQCOM;"  // GL_QCOM_tile_shading
+            "\n");
+    }
+
     //============================================================================
     //
     // Define the interface to the mesh/task shader.
@@ -6478,6 +6531,16 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
     if (version >= 300 /* both ES and non-ES */) {
         stageBuiltins[EShLangFragment].append(
             "flat in highp uint gl_ViewID_OVR;"     // GL_OVR_multiview, GL_OVR_multiview2
+            "\n");
+    }
+    
+    // GL_QCOM_tile_shading
+    if ((profile == EEsProfile && version >= 310) ||
+        (profile != EEsProfile && version >= 460)) {
+        stageBuiltins[EShLangFragment].append(
+            "flat in highp uvec2 gl_TileOffsetQCOM;"     // GL_QCOM_tile_shading
+            "flat in highp uvec3 gl_TileDimensionQCOM;"  // GL_QCOM_tile_shading
+            "flat in highp uvec2 gl_TileApronSizeQCOM;"  // GL_QCOM_tile_shading
             "\n");
     }
 
@@ -8878,18 +8941,18 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             BuiltInVariable("gl_WarpMaxIDARM", EbvWarpMaxIDARM, symbolTable);
         }
 
-		if (language == EShLangGeometry || language == EShLangVertex) {
-			if ((profile == EEsProfile && version >= 310) ||
-				(profile != EEsProfile && version >= 450)) {
-				symbolTable.setVariableExtensions("gl_PrimitiveShadingRateEXT", 1, &E_GL_EXT_fragment_shading_rate);
-				BuiltInVariable("gl_PrimitiveShadingRateEXT", EbvPrimitiveShadingRateKHR, symbolTable);
+        if (language == EShLangGeometry || language == EShLangVertex) {
+            if ((profile == EEsProfile && version >= 310) ||
+                (profile != EEsProfile && version >= 450)) {
+                symbolTable.setVariableExtensions("gl_PrimitiveShadingRateEXT", 1, &E_GL_EXT_fragment_shading_rate);
+                BuiltInVariable("gl_PrimitiveShadingRateEXT", EbvPrimitiveShadingRateKHR, symbolTable);
 
-				symbolTable.setVariableExtensions("gl_ShadingRateFlag2VerticalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
-				symbolTable.setVariableExtensions("gl_ShadingRateFlag4VerticalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
-				symbolTable.setVariableExtensions("gl_ShadingRateFlag2HorizontalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
-				symbolTable.setVariableExtensions("gl_ShadingRateFlag4HorizontalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
-			}
-		}
+                symbolTable.setVariableExtensions("gl_ShadingRateFlag2VerticalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
+                symbolTable.setVariableExtensions("gl_ShadingRateFlag4VerticalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
+                symbolTable.setVariableExtensions("gl_ShadingRateFlag2HorizontalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
+                symbolTable.setVariableExtensions("gl_ShadingRateFlag4HorizontalPixelsEXT", 1, &E_GL_EXT_fragment_shading_rate);
+            }
+        }
         break;
 
     case EShLangFragment:
@@ -9527,6 +9590,17 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("textureBlockMatchGatherSSDQCOM", 1, &E_GL_QCOM_image_processing2);
             symbolTable.setFunctionExtensions("textureBlockMatchGatherSADQCOM", 1, &E_GL_QCOM_image_processing2);
         }
+
+        if ((profile == EEsProfile && version >= 310) ||
+            (profile != EEsProfile && version >= 460)) {
+            BuiltInVariable("gl_TileOffsetQCOM",    EbvTileOffsetQCOM,      symbolTable);
+            BuiltInVariable("gl_TileDimensionQCOM", EbvTileDimensionQCOM,   symbolTable);
+            BuiltInVariable("gl_TileApronSizeQCOM", EbvTileApronSizeQCOM,   symbolTable);
+
+            symbolTable.setVariableExtensions("gl_TileOffsetQCOM",        1, &E_GL_QCOM_tile_shading);
+            symbolTable.setVariableExtensions("gl_TileDimensionQCOM",     1, &E_GL_QCOM_tile_shading);
+            symbolTable.setVariableExtensions("gl_TileApronSizeQCOM",     1, &E_GL_QCOM_tile_shading);
+        }
         break;
 
     case EShLangCompute:
@@ -9730,8 +9804,32 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("bfloat16BitsToUintEXT", 1, &E_GL_EXT_bfloat16);
             symbolTable.setFunctionExtensions("intBitsToBFloat16EXT", 1, &E_GL_EXT_bfloat16);
             symbolTable.setFunctionExtensions("uintBitsToBFloat16EXT", 1, &E_GL_EXT_bfloat16);
+
+            symbolTable.setFunctionExtensions("floate5m2BitsToIntEXT", 1, &E_GL_EXT_float_e5m2);
+            symbolTable.setFunctionExtensions("floate5m2BitsToUintEXT", 1, &E_GL_EXT_float_e5m2);
+            symbolTable.setFunctionExtensions("intBitsToFloate5m2EXT", 1, &E_GL_EXT_float_e5m2);
+            symbolTable.setFunctionExtensions("uintBitsToFloate5m2EXT", 1, &E_GL_EXT_float_e5m2);
+
+            symbolTable.setFunctionExtensions("floate4m3BitsToIntEXT", 1, &E_GL_EXT_float_e4m3);
+            symbolTable.setFunctionExtensions("floate4m3BitsToUintEXT", 1, &E_GL_EXT_float_e4m3);
+            symbolTable.setFunctionExtensions("intBitsToFloate4m3EXT", 1, &E_GL_EXT_float_e4m3);
+            symbolTable.setFunctionExtensions("uintBitsToFloate4m3EXT", 1, &E_GL_EXT_float_e4m3);
+
+            const char *float8exts[] = {E_GL_EXT_float_e5m2, E_GL_EXT_float_e4m3};
+            symbolTable.setFunctionExtensions("saturatedConvertEXT", 2, float8exts);
         }
 
+        // E_SPV_QCOM_tile_shading
+        if ((profile == EEsProfile && version >= 310) ||
+            (profile != EEsProfile && version >= 460)) {
+            BuiltInVariable("gl_TileOffsetQCOM",        EbvTileOffsetQCOM,      symbolTable);
+            BuiltInVariable("gl_TileDimensionQCOM",     EbvTileDimensionQCOM,   symbolTable);
+            BuiltInVariable("gl_TileApronSizeQCOM",     EbvTileApronSizeQCOM,   symbolTable);
+
+            symbolTable.setVariableExtensions("gl_TileOffsetQCOM",        1, &E_GL_QCOM_tile_shading);
+            symbolTable.setVariableExtensions("gl_TileDimensionQCOM",     1, &E_GL_QCOM_tile_shading);
+            symbolTable.setVariableExtensions("gl_TileApronSizeQCOM",     1, &E_GL_QCOM_tile_shading);
+        }
         break;
 
     case EShLangRayGen:
@@ -10717,6 +10815,18 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("bfloat16BitsToUintEXT", EOpFloatBitsToUint);
             symbolTable.relateToOperator("intBitsToBFloat16EXT",  EOpIntBitsToFloat);
             symbolTable.relateToOperator("uintBitsToBFloat16EXT", EOpUintBitsToFloat);
+
+            symbolTable.relateToOperator("floate5m2BitsToIntEXT",  EOpFloatBitsToInt);
+            symbolTable.relateToOperator("floate5m2BitsToUintEXT", EOpFloatBitsToUint);
+            symbolTable.relateToOperator("intBitsToFloate5m2EXT",  EOpIntBitsToFloat);
+            symbolTable.relateToOperator("uintBitsToFloate5m2EXT", EOpUintBitsToFloat);
+
+            symbolTable.relateToOperator("floate4m3BitsToIntEXT",  EOpFloatBitsToInt);
+            symbolTable.relateToOperator("floate4m3BitsToUintEXT", EOpFloatBitsToUint);
+            symbolTable.relateToOperator("intBitsToFloate4m3EXT",  EOpIntBitsToFloat);
+            symbolTable.relateToOperator("uintBitsToFloate4m3EXT", EOpUintBitsToFloat);
+
+            symbolTable.relateToOperator("saturatedConvertEXT", EOpConstructSaturated);
         }
 
         // GL_KHR_shader_subgroup

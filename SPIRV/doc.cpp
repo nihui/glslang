@@ -194,6 +194,10 @@ const char* ExecutionModeString(int mode)
     case (int)ExecutionMode::SignedZeroInfNanPreserve:      return "SignedZeroInfNanPreserve";
     case (int)ExecutionMode::RoundingModeRTE:               return "RoundingModeRTE";
     case (int)ExecutionMode::RoundingModeRTZ:               return "RoundingModeRTZ";
+
+    case (int)ExecutionMode::NonCoherentTileAttachmentReadQCOM: return "NonCoherentTileAttachmentReadQCOM";
+    case (int)ExecutionMode::TileShadingRateQCOM:               return "TileShadingRateQCOM";
+
     case (int)ExecutionMode::EarlyAndLateFragmentTestsAMD:  return "EarlyAndLateFragmentTestsAMD";
     case (int)ExecutionMode::StencilRefUnchangedFrontAMD:   return "StencilRefUnchangedFrontAMD";
     case (int)ExecutionMode::StencilRefLessFrontAMD:        return "StencilRefLessFrontAMD";
@@ -249,6 +253,7 @@ const char* StorageClassString(int StorageClass)
     case 11: return "Image";
     case 12: return "StorageBuffer";
 
+    case (int)StorageClass::TileAttachmentQCOM:       return "TileAttachmentQCOM";
     case (int)StorageClass::RayPayloadKHR:            return "RayPayloadKHR";
     case (int)StorageClass::HitAttributeKHR:          return "HitAttributeKHR";
     case (int)StorageClass::IncomingRayPayloadKHR:    return "IncomingRayPayloadKHR";
@@ -339,6 +344,8 @@ const char* DecorationString(int decoration)
     case (int)Decoration::AliasedPointerEXT:       return "DecorationAliasedPointerEXT";
 
     case (int)Decoration::HitObjectShaderRecordBufferNV:  return "DecorationHitObjectShaderRecordBufferNV";
+
+    case (int)Decoration::SaturatedToLargestFloat8NormalConversionEXT: return "DecorationSaturatedToLargestFloat8NormalConversionEXT";
     }
 }
 
@@ -403,6 +410,10 @@ const char* BuiltInString(int builtIn)
     case 4432: return "PrimitiveShadingRateKHR";
     case 4444: return "ShadingRateKHR";
     case 5014: return "FragStencilRefEXT";
+
+    case (int)BuiltIn::TileOffsetQCOM:     return "TileOffsetQCOM";
+    case (int)BuiltIn::TileDimensionQCOM:  return "TileDimensionQCOM";
+    case (int)BuiltIn::TileApronSizeQCOM:  return "TileApronSizeQCOM";
 
     case 4992: return "BaryCoordNoPerspAMD";
     case 4993: return "BaryCoordNoPerspCentroidAMD";
@@ -1099,6 +1110,7 @@ const char* CapabilityString(int info)
     case (int)Capability::TextureSampleWeightedQCOM:           return "TextureSampleWeightedQCOM";
     case (int)Capability::TextureBoxFilterQCOM:                return "TextureBoxFilterQCOM";
     case (int)Capability::TextureBlockMatchQCOM:               return "TextureBlockMatchQCOM";
+    case (int)Capability::TileShadingQCOM:                     return "TileShadingQCOM";
     case (int)Capability::TextureBlockMatch2QCOM:              return "TextureBlockMatch2QCOM";
 
     case (int)Capability::ReplicatedCompositesEXT:             return "CapabilityReplicatedCompositesEXT";
@@ -1116,6 +1128,9 @@ const char* CapabilityString(int info)
     case (int)Capability::BFloat16TypeKHR:                     return "CapabilityBFloat16TypeKHR";
     case (int)Capability::BFloat16DotProductKHR:               return "CapabilityBFloat16DotProductKHR";
     case (int)Capability::BFloat16CooperativeMatrixKHR:        return "CapabilityBFloat16CooperativeMatrixKHR";
+
+    case (int)Capability::Float8EXT:                           return "CapabilityFloat8EXT";
+    case (int)Capability::Float8CooperativeMatrixEXT:          return "CapabilityFloat8CooperativeMatrixEXT";
 
     default: return "Bad";
     }

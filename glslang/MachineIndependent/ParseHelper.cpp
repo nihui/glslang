@@ -1527,6 +1527,11 @@ TIntermTyped* TParseContext::handleFunctionCall(const TSourceLoc& loc, TFunction
                 else
                     result->setType(result->getAsAggregate()->getSequence()[0]->getAsTyped()->getType());
             }
+
+            if (fnCandidate->getBuiltInOp() == EOpConstructSaturated) {
+                // result type is taken from the first parameter
+                result->setType(result->getAsAggregate()->getSequence()[0]->getAsTyped()->getType());
+            }
         }
     }
 
@@ -1873,6 +1878,7 @@ void TParseContext::computeBuiltinPrecisions(TIntermTyped& node, const TFunction
         case EOpDebugPrintf:
         case EOpCooperativeMatrixPerElementOpNV:
         case EOpCooperativeMatrixReduceNV:
+        case EOpConstructSaturated:
             numArgs = 0;
             break;
         default:
@@ -3148,6 +3154,32 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
         break;
     }
 
+    case EOpConstructSaturated:
+    {
+        auto &sequence = callNode.getAsAggregate()->getSequence();
+        if (sequence.size() != 2) {
+            error(loc, "requires exactly two parameters", "", "");
+        }
+        auto &op0Type = sequence[0]->getAsTyped()->getType();
+        auto &op1Type = sequence[1]->getAsTyped()->getType();
+        if (op0Type.getBasicType() != EbtFloatE5M2 && op0Type.getBasicType() != EbtFloatE4M3) {
+            error(loc, "first parameter must have floate5m2 or floate4m3 basic type", "", "");
+        }
+        if (op1Type.getBasicType() == EbtFloatE5M2 || op1Type.getBasicType() == EbtFloatE4M3) {
+            error(loc, "second parameter must not have floate5m2 or floate4m3 basic type", "", "");
+        }
+
+        if (!(op0Type.isScalar() || op0Type.isVector() || op0Type.isCoopMatKHR())) {
+            error(loc, "first parameter must be scalar, vector, or cooperative matrix", "", "");
+        }
+        if (!(op1Type.isScalar() || op1Type.isVector() || op1Type.isCoopMatKHR())) {
+            error(loc, "second parameter must be scalar, vector, or cooperative matrix", "", "");
+        }
+        if (!(op0Type.sameElementShape(op1Type) || op0Type.sameCoopMatShape(op1Type))) {
+            error(loc, "types must match other than scalar type and coopmat Use", "", "");
+        }
+        break;
+    }
     default:
         break;
     }
@@ -4163,10 +4195,16 @@ bool TParseContext::constructorTextureSamplerError(const TSourceLoc& loc, const 
         error(loc, "sampler-constructor first argument must be a scalar *texture* type", token, "");
         return true;
     }
+
     // simulate the first argument's impact on the result type, so it can be compared with the encapsulated operator!=()
     TSampler texture = function.getType().getSampler();
     texture.setCombined(false);
     texture.shadow = false;
+    if (function[0].type->getSampler().isTileAttachmentQCOM()) {
+      //TSampler& texture = const_cast<TFunction&>(function).getWritableType().getSampler();
+      texture.image = true;
+      texture.tileQCOM = true;
+    }
     if (texture != function[0].type->getSampler()) {
         error(loc, "sampler-constructor first argument must be a *texture* type"
                    " matching the dimensionality and sampled type of the constructor", token, "");
@@ -4258,7 +4296,7 @@ void TParseContext::samplerCheck(const TSourceLoc& loc, const TType& type, const
             // if (! initializer)
             if (type.getSampler().isAttachmentEXT() && type.getQualifier().storage != EvqTileImageEXT)
                  error(loc, "can only be used in tileImageEXT variables or function parameters:", type.getBasicTypeString().c_str(), identifier.c_str());
-             else if (type.getQualifier().storage != EvqTileImageEXT)
+            else if (type.getQualifier().storage != EvqTileImageEXT)
                  error(loc, "sampler/image types can only be used in uniform variables or function parameters:", type.getBasicTypeString().c_str(), identifier.c_str());
         }
     }
@@ -6311,6 +6349,16 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
             publicType.qualifier.layoutFullQuads = true;
             return;
         }
+        if (id == "non_coherent_attachment_readqcom") {
+            requireExtensions(loc, 1, &E_GL_QCOM_tile_shading, "tile shading QCOM");
+            publicType.shaderQualifiers.layoutNonCoherentTileAttachmentReadQCOM = true;
+            return;
+        }
+        if (id == "tile_attachmentqcom") {
+            requireExtensions(loc, 1, &E_GL_QCOM_tile_shading, "tile shading QCOM");
+            publicType.qualifier.layoutTileAttachmentQCOM = true;
+            return;
+        }
     }
     if (language == EShLangVertex ||
         language == EShLangTessControl ||
@@ -6351,6 +6399,11 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
                 publicType.shaderQualifiers.layoutDerivativeGroupLinear = true;
                 return;
             }
+        }
+        if (id == "tile_attachmentqcom") {
+            requireExtensions(loc, 1, &E_GL_QCOM_tile_shading, "tile shading QCOM");
+            publicType.qualifier.layoutTileAttachmentQCOM = true;
+            return;
         }
     }
 
@@ -6721,6 +6774,38 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
                 }
             }
         }
+        if (id.compare(0, 18, "shading_rate_xqcom") == 0 ||
+            id.compare(0, 18, "shading_rate_yqcom") == 0 ||
+            id.compare(0, 18, "shading_rate_zqcom") == 0) {
+            requireExtensions(loc, 1, &E_GL_QCOM_tile_shading, "tile shading QCOM");
+            if (nonLiteral)
+                error(loc, "needs a literal integer", "shading_rate_*QCOM", "");
+            if (id.size() == 18 && value == 0) {
+                error(loc, "must be at least 1", id.c_str(), "");
+                return;
+            }
+            if (id == "shading_rate_xqcom") {
+                publicType.shaderQualifiers.layoutTileShadingRateQCOM[0] = value;
+                publicType.shaderQualifiers.layoutTileShadingRateQCOMNotDefault[0] = true;
+                if (! IsPow2(value))
+                    error(loc, "must be a power of 2", id.c_str(), "");
+                return;
+            }
+            if (id == "shading_rate_yqcom") {
+                publicType.shaderQualifiers.layoutTileShadingRateQCOM[1] = value;
+                publicType.shaderQualifiers.layoutTileShadingRateQCOMNotDefault[1] = true;
+                if (! IsPow2(value))
+                    error(loc, "must be a power of 2", id.c_str(), "");
+                return;
+            }
+            if (id == "shading_rate_zqcom") {
+                publicType.shaderQualifiers.layoutTileShadingRateQCOM[2] = value;
+                publicType.shaderQualifiers.layoutTileShadingRateQCOMNotDefault[2] = true;
+                if (value <= 0)
+                    error(loc, "must be a positive value", id.c_str(), "");
+                return;
+            }
+        }
         break;
 
     default:
@@ -6814,6 +6899,7 @@ void TParseContext::mergeObjectLayoutQualifiers(TQualifier& dst, const TQualifie
             dst.pervertexEXT = true;
         if (src.layoutHitObjectShaderRecordNV)
             dst.layoutHitObjectShaderRecordNV = true;
+        dst.layoutTileAttachmentQCOM |= src.layoutTileAttachmentQCOM;
     }
 }
 
@@ -7160,6 +7246,8 @@ void TParseContext::layoutTypeCheck(const TSourceLoc& loc, const TType& type)
         case EbtDouble:
         case EbtFloat16:
         case EbtBFloat16:
+        case EbtFloatE5M2:
+        case EbtFloatE4M3:
             break;
         default:
             error(loc, "cannot be applied to this type", "constant_id", "");
@@ -7258,8 +7346,8 @@ void TParseContext::layoutQualifierCheck(const TSourceLoc& loc, const TQualifier
     }
 
     if (qualifier.hasBinding()) {
-        if (! qualifier.isUniformOrBuffer() && !qualifier.isTaskMemory())
-            error(loc, "requires uniform or buffer storage qualifier", "binding", "");
+        if (! qualifier.isUniformOrBuffer() && !qualifier.isTaskMemory() && !qualifier.isTileAttachmentQCOM())
+            error(loc, "requires uniform or buffer or tile image storage qualifier", "binding", "");
     }
     if (qualifier.hasStream()) {
         if (!qualifier.isPipeOutput())
@@ -7364,6 +7452,15 @@ void TParseContext::checkNoShaderLayouts(const TSourceLoc& loc, const TShaderQua
         error(loc, message, TQualifier::getInterlockOrderingString(shaderQualifiers.interlockOrdering), "");
     if (shaderQualifiers.layoutPrimitiveCulling)
         error(loc, "can only be applied as standalone", "primitive_culling", "");
+
+    if (shaderQualifiers.layoutNonCoherentTileAttachmentReadQCOM)
+        error(loc, message, "non_coherent_attachment_readQCOM", "");
+    if (shaderQualifiers.layoutTileShadingRateQCOM[0] >= 1)
+        error(loc, message, "shading_rate_xQCOM", "");
+    if (shaderQualifiers.layoutTileShadingRateQCOM[1] >= 1)
+        error(loc, message, "shading_rate_yQCOM", "");
+    if (shaderQualifiers.layoutTileShadingRateQCOM[2] >= 1)
+        error(loc, message, "shading_rate_zQCOM", "");
 }
 
 // Correct and/or advance an object's offset layout qualifier.
@@ -7431,6 +7528,12 @@ const TFunction* TParseContext::findFunction(const TSourceLoc& loc, const TFunct
     // checking in handleCoopMat2FunctionCall.
     if (call.getName() == "coopMatPerElementNV") {
         TSymbol* symbol = symbolTable.find("coopMatPerElementNV(", &builtIn);
+        if (symbol)
+            return symbol->getAsFunction();
+    }
+
+    if (call.getName() == "saturatedConvertEXT") {
+        TSymbol* symbol = symbolTable.find("saturatedConvertEXT(", &builtIn);
         if (symbol)
             return symbol->getAsFunction();
     }
@@ -7892,6 +7995,8 @@ void TParseContext::typeParametersCheck(const TSourceLoc& loc, const TPublicType
         case EbtFloat:
         case EbtFloat16:
         case EbtBFloat16:
+        case EbtFloatE5M2:
+        case EbtFloatE4M3:
         case EbtInt:
         case EbtInt8:
         case EbtInt16:
@@ -8405,6 +8510,10 @@ TIntermNode* TParseContext::declareVariable(const TSourceLoc& loc, TString& iden
     if (type.getBasicType() == EbtBFloat16 &&
         (type.getQualifier().storage == EvqVaryingIn || type.getQualifier().storage == EvqVaryingOut))
         error(loc, "qualifier", "bfloat16 types not allowed as input/output", "");
+
+    if ((type.getBasicType() == EbtFloatE5M2 || type.getBasicType() == EbtFloatE4M3) &&
+        (type.getQualifier().storage == EvqVaryingIn || type.getQualifier().storage == EvqVaryingOut))
+        error(loc, "qualifier", "fp8 types not allowed as input/output", "");
 
     if (type.getQualifier().storage == EvqtaskPayloadSharedEXT)
         intermediate.addTaskPayloadEXTCount();
@@ -9080,6 +9189,20 @@ TIntermTyped* TParseContext::constructBuiltIn(const TType& type, TOperator op, T
     case EOpConstructBF16Vec4:
     case EOpConstructBFloat16:
         basicOp = EOpConstructBFloat16;
+        break;
+
+    case EOpConstructFloatE5M2Vec2:
+    case EOpConstructFloatE5M2Vec3:
+    case EOpConstructFloatE5M2Vec4:
+    case EOpConstructFloatE5M2:
+        basicOp = EOpConstructFloatE5M2;
+        break;
+
+    case EOpConstructFloatE4M3Vec2:
+    case EOpConstructFloatE4M3Vec3:
+    case EOpConstructFloatE4M3Vec4:
+    case EOpConstructFloatE4M3:
+        basicOp = EOpConstructFloatE4M3;
         break;
 
     case EOpConstructI8Vec2:
@@ -10353,6 +10476,12 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
         else
             error(loc, "can only apply to 'in'", "non_coherent_stencil_attachment_readEXT", "");
     }
+    if (publicType.shaderQualifiers.layoutNonCoherentTileAttachmentReadQCOM) {
+        if (publicType.qualifier.storage == EvqVaryingIn)
+            intermediate.setNonCoherentTileAttachmentReadQCOM();
+        else
+            error(loc, "can only apply to 'in'", "non_coherent_attachment_readQCOM", "");
+    }
     if (publicType.shaderQualifiers.hasBlendEquation()) {
         if (publicType.qualifier.storage != EvqVaryingOut)
             error(loc, "can only apply to 'out'", "blend equation", "");
@@ -10414,6 +10543,16 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
         }
         // Exit early as further checks are not valid
         return;
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        if (publicType.shaderQualifiers.layoutTileShadingRateQCOMNotDefault[i]) {
+            if (publicType.qualifier.storage == EvqVaryingIn) {
+                if (! intermediate.setTileShadingRateQCOM(i, publicType.shaderQualifiers.layoutTileShadingRateQCOM[i]))
+                    error(loc, "cannot change previously set size", (i==0?"shading_rate_xQCOM":(i==1?"shading_rate_yQCOM":"shading_rate_zQCOM")), "");
+            } else
+                error(loc, "can only apply to 'in'", (i==0?"shading_rate_xQCOM":(i==1?"shading_rate_yQCOM":"shading_rate_zQCOM")), "");
+        }
     }
 
     const TQualifier& qualifier = publicType.qualifier;

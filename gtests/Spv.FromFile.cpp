@@ -401,6 +401,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.flowControl.frag",
         "spv.forLoop.frag",
         "spv.forwardFun.frag",
+        "spv.fp8_error.frag",
         "spv.fragmentDensity.frag",
         "spv.fragmentDensity.vert",
         "spv.fragmentDensity-es.frag",
@@ -770,6 +771,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nv.lss-allops.rchit",
         "spv.nv.lss-allops.rmiss",
         "spv.nv.lss-allops.frag",
+        "spv.nv.lss-spheregeomcap.rgen",
+        "spv.nv.lss-lssgeomcap.rgen",
 
     })),
     FileNameAsCustomTestSuffix
@@ -791,6 +794,10 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.coopmat2_tensor.comp",
         "spv.1.6.nontemporalimage.frag",
         "spv.noexplicitlayout.comp",
+        "spv.floate4m3.comp",
+        "spv.floate4m3_error.comp",
+        "spv.floate5m2.comp",
+        "spv.floate5m2_error.comp",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -896,6 +903,15 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.tpipBlockMatchGatherSSD.frag",
         "spv.tpipBlockMatchWindowSAD.frag",
         "spv.tpipBlockMatchWindowSSD.frag",
+        "spv.qcom.tileShading.0.comp",
+        "spv.qcom.tileShading.1.comp",
+        "spv.qcom.es.tileShading.0.comp",
+        "spv.qcom.es.tileShading.1.comp",
+        "spv.qcom.es.tileShading.2.comp",
+        "spv.qcom.tileShading.0.frag",
+        "spv.qcom.tileShading.1.frag",
+        "spv.qcom.es.tileShading.0.frag",
+        "spv.qcom.es.tileShading.1.frag",
     })),
     FileNameAsCustomTestSuffix
 );
