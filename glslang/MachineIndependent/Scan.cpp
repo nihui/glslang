@@ -769,11 +769,17 @@ const std::unordered_map<const char*, int, str_hash, str_eq> KeywordMap {
     {"hitObjectNV",HITOBJECTNV},
     {"hitObjectAttributeNV",HITOBJECTATTRNV},
 
+    {"tensorARM",TENSORARM},
+
+    {"hitObjectEXT",HITOBJECTEXT},
+    {"hitObjectAttributeEXT",HITOBJECTATTREXT},
+
     {"__function",FUNCTION},
     {"tensorLayoutNV",TENSORLAYOUTNV},
     {"tensorViewNV",TENSORVIEWNV},
 
     {"coopvecNV",COOPVECNV},
+    {"vector",VECTOR},
 };
 const std::unordered_set<const char*, str_hash, str_eq> ReservedSet {
     "common",
@@ -834,12 +840,22 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         loc = ppToken.loc;
         parserToken->sType.lex.loc = loc;
         switch (token) {
-        case ';':  afterType = false; afterBuffer = false; return SEMICOLON;
-        case ',':  afterType = false;   return COMMA;
+        case ';':  afterType = false; afterBuffer = false; inDeclaratorList = false; afterDeclarator = false; angleBracketDepth = 0; squareBracketDepth = 0; parenDepth = 0; return SEMICOLON;
+        case ',':
+            // If we just processed a declarator (identifier after a type), this comma
+            // indicates that we're in a declarator list. Note that 'afterDeclarator' is
+            // only set when we are not inside a template parameter list, array expression,
+            // or function parameter list.
+            if (afterDeclarator) {
+                inDeclaratorList = true;
+            }
+            afterType = false;
+            afterDeclarator = false;
+            return COMMA;
         case ':':                       return COLON;
-        case '=':  afterType = false;   return EQUAL;
-        case '(':  afterType = false;   return LEFT_PAREN;
-        case ')':  afterType = false;   return RIGHT_PAREN;
+        case '=':  afterType = false; inDeclaratorList = false; afterDeclarator = false; return EQUAL;
+        case '(':  afterType = false; inDeclaratorList = false; afterDeclarator = false; parenDepth++; return LEFT_PAREN;
+        case ')':  afterType = false; inDeclaratorList = false; afterDeclarator = false; if (parenDepth > 0) parenDepth--; return RIGHT_PAREN;
         case '.':  field = true;        return DOT;
         case '!':                       return BANG;
         case '-':                       return DASH;
@@ -848,16 +864,16 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         case '*':                       return STAR;
         case '/':                       return SLASH;
         case '%':                       return PERCENT;
-        case '<':                       return LEFT_ANGLE;
-        case '>':                       return RIGHT_ANGLE;
+        case '<':                       angleBracketDepth++; return LEFT_ANGLE;
+        case '>':                       if (angleBracketDepth > 0) angleBracketDepth--; return RIGHT_ANGLE;
         case '|':                       return VERTICAL_BAR;
         case '^':                       return CARET;
         case '&':                       return AMPERSAND;
         case '?':                       return QUESTION;
-        case '[':                       return LEFT_BRACKET;
-        case ']':                       return RIGHT_BRACKET;
-        case '{':  afterStruct = false; afterBuffer = false; return LEFT_BRACE;
-        case '}':                       return RIGHT_BRACE;
+        case '[':                       squareBracketDepth++; return LEFT_BRACKET;
+        case ']':                       if (squareBracketDepth > 0) squareBracketDepth--; return RIGHT_BRACKET;
+        case '{':  afterStruct = false; afterBuffer = false; inDeclaratorList = false; afterDeclarator = false; angleBracketDepth = 0; squareBracketDepth = 0; parenDepth = 0; return LEFT_BRACE;
+        case '}':  inDeclaratorList = false; afterDeclarator = false; angleBracketDepth = 0; squareBracketDepth = 0; parenDepth = 0; return RIGHT_BRACE;
         case '\\':
             parseContext.error(loc, "illegal use of escape character", "\\", "");
             break;
@@ -1856,6 +1872,12 @@ int TScanContext::tokenizeIdentifier()
             parseContext.extensionTurnedOn(E_GL_NV_integer_cooperative_matrix))
             return keyword;
         return identifierOrType();
+    case TENSORARM:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_ARM_tensors))
+            return keyword;
+        return identifierOrType();
 
     case COOPMAT:
         afterType = true;
@@ -1868,6 +1890,13 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         if (parseContext.symbolTable.atBuiltInLevel() ||
             parseContext.extensionTurnedOn(E_GL_NV_cooperative_vector))
+            return keyword;
+        return identifierOrType();
+
+    case VECTOR:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_EXT_long_vector))
             return keyword;
         return identifierOrType();
 
@@ -1899,10 +1928,24 @@ int TScanContext::tokenizeIdentifier()
             return keyword;
         return identifierOrType();
 
+    case HITOBJECTEXT:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (!parseContext.isEsProfile() && parseContext.version >= 460
+                 && parseContext.extensionTurnedOn(E_GL_EXT_shader_invocation_reorder)))
+            return keyword;
+        return identifierOrType();
+
     case HITOBJECTATTRNV:
         if (parseContext.symbolTable.atBuiltInLevel() ||
             (!parseContext.isEsProfile() && parseContext.version >= 460
                  && parseContext.extensionTurnedOn(E_GL_NV_shader_invocation_reorder)))
+            return keyword;
+        return identifierOrType();
+
+    case HITOBJECTATTREXT:
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            (!parseContext.isEsProfile() && parseContext.version >= 460
+                 && parseContext.extensionTurnedOn(E_GL_EXT_shader_invocation_reorder)))
             return keyword;
         return identifierOrType();
 
@@ -1927,14 +1970,29 @@ int TScanContext::identifierOrType()
     if (field)
         return IDENTIFIER;
 
+    // If we see an identifier right after a type, this might be a declarator.
+    // But not in template parameters (inside angle brackets), array expressions (inside square brackets),
+    // or function parameters (inside parentheses)
+    if (afterType && angleBracketDepth == 0 && squareBracketDepth == 0 && parenDepth == 0) {
+        afterDeclarator = true;
+        afterType = false;
+        return IDENTIFIER;
+    }
+
     parserToken->sType.lex.symbol = parseContext.symbolTable.find(*parserToken->sType.lex.string);
     if ((afterType == false && afterStruct == false) && parserToken->sType.lex.symbol != nullptr) {
         if (const TVariable* variable = parserToken->sType.lex.symbol->getAsVariable()) {
             if (variable->isUserType() &&
                 // treat redeclaration of forward-declared buffer/uniform reference as an identifier
                 !(variable->getType().isReference() && afterBuffer)) {
-                afterType = true;
 
+                // If we're in a declarator list (like "float a, B;"), treat struct names as IDENTIFIER
+                // to fix GitHub issue #3931
+                if (inDeclaratorList) {
+                    return IDENTIFIER;
+                }
+                
+                afterType = true;
                 return TYPE_NAME;
             }
         }

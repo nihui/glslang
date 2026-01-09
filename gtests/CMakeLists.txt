@@ -56,14 +56,11 @@ if(GLSLANG_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/LiveTraverser.FromFile.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/Pp.FromFile.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/Spv.FromFile.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/StructName.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/SpvPatternTest.cpp
             ${CMAKE_CURRENT_SOURCE_DIR}/VkRelaxed.FromFile.cpp
-            ${CMAKE_CURRENT_SOURCE_DIR}/GlslMapIO.FromFile.cpp)
-
-        if(ENABLE_SPVREMAPPER)
-            set(TEST_SOURCES ${TEST_SOURCES}
-                ${CMAKE_CURRENT_SOURCE_DIR}/Remap.FromFile.cpp)
-        endif()
-
+            ${CMAKE_CURRENT_SOURCE_DIR}/GlslMapIO.FromFile.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/UboUnsizedArray.cpp)
 
         add_executable(glslangtests ${TEST_SOURCES})
         glslang_pch(glslangtests ${CMAKE_CURRENT_SOURCE_DIR}/pch.h)
@@ -75,7 +72,8 @@ if(GLSLANG_TESTS)
         # doesn't have to specify the --test-root option in the normal
         # case that you want to use the tests from the same source tree.
         target_compile_definitions(glslangtests
-                                   PRIVATE GLSLANG_TEST_DIRECTORY="${GLSLANG_TEST_DIRECTORY}")
+                                   PRIVATE GLSLANG_TEST_DIRECTORY="${GLSLANG_TEST_DIRECTORY}"
+                                   PRIVATE GLSLANG_TEST_BUILD=1)
         target_include_directories(glslangtests PRIVATE
                                    ${CMAKE_CURRENT_SOURCE_DIR}
                                    ${PROJECT_SOURCE_DIR}
@@ -92,21 +90,17 @@ if(GLSLANG_TESTS)
             glslang glslang-default-resource-limits
             $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0>>:stdc++fs>)
 
-        if(ENABLE_SPVREMAPPER)
-            set(LIBRARIES ${LIBRARIES} SPVRemapper)
-        endif()
-
         target_link_libraries(glslangtests PRIVATE ${LIBRARIES} gmock)
 
-        if(WIN32 AND BUILD_SHARED_LIBS)
-            # The TARGET_RUNTIME_DLL_DIRS feature requires CMake 3.27 or greater.
-            if(CMAKE_VERSION VERSION_LESS "3.27")
-                message(WARNING "The Windows shared library test configuration requires CMake 3.27 or greater")
-            else()
-                add_test(NAME glslang-gtests
-                        COMMAND glslangtests --test-root "${GLSLANG_TEST_DIRECTORY}")
+        # The TARGET_RUNTIME_DLL_DIRS feature requires CMake 3.27 or greater.
+        if(WIN32 AND BUILD_SHARED_LIBS AND CMAKE_VERSION VERSION_LESS "3.27")
+            message(WARNING "The Windows shared library test configuration requires CMake 3.27 or greater")
+        else()
+            add_test(NAME glslang-gtests
+                     COMMAND glslangtests --test-root "${GLSLANG_TEST_DIRECTORY}")
 
-                # Prepend paths to shared libraries.
+            # Prepend paths to shared libraries.
+            if (BUILD_SHARED_LIBS)
                 set_tests_properties(glslang-gtests PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:glslangtests>,\;>")
             endif()
         endif()
