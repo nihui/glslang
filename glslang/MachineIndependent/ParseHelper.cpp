@@ -43,6 +43,7 @@
 #include "Scan.h"
 
 #include <algorithm>
+#include <limits>
 #include <sys/types.h>
 
 #include "Versions.h"
@@ -1834,17 +1835,28 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
 
                 if (type.isCoopMatNV()) {
                     // coopmatNV don't encode usage, so provide the correct usage by default
-                    return {size->getArraySize(2), size->getArraySize(3), idx};
+                    return std::tuple<ArrayDim, ArrayDim, int>{size->getArraySize(2), size->getArraySize(3), idx};
                 } else {
                     assert(type.isCoopMatKHR());
-                    return {size->getArraySize(1), size->getArraySize(2), size->getDimSize(3)};
+                    return std::tuple<ArrayDim, ArrayDim, int>{size->getArraySize(1), size->getArraySize(2), size->getDimSize(3)};
                 }
             };
 
             // sizes look like: [scope, rows, cols, use]
-            auto [aRows, aCols, aUse] = getDim(sequence, 0);
-            auto [bRows, bCols, bUse] = getDim(sequence, 1);
-            auto [cRows, cCols, cUse] = getDim(sequence, 2);
+            auto aDim = getDim(sequence, 0);
+            auto aRows = std::get<0>(aDim);
+            auto aCols = std::get<1>(aDim);
+            auto aUse = std::get<2>(aDim);
+
+            auto bDim = getDim(sequence, 1);
+            auto bRows = std::get<0>(bDim);
+            auto bCols = std::get<1>(bDim);
+            auto bUse = std::get<2>(bDim);
+
+            auto cDim = getDim(sequence, 2);
+            auto cRows = std::get<0>(cDim);
+            auto cCols = std::get<1>(cDim);
+            auto cUse = std::get<2>(cDim);
 
             auto toString = [](ArrayDim dim) -> std::string {
                 std::stringstream buf;
@@ -7299,7 +7311,6 @@ void TParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& publi
                 error(loc, "needs a literal integer", "max_primitives", "");
             return;
         }
-        [[fallthrough]];
 
     case EShLangTask:
         // Fall through
@@ -9794,7 +9805,6 @@ TIntermTyped* TParseContext::constructBuiltIn(const TType& type, TOperator op, T
                 intermediate.addBuiltInFunctionCall(node->getLoc(), EOpConstructUVec2, false, newSrcNode, type);
             return newNode;
         }
-        [[fallthrough]];
     case EOpConstructUVec3:
     case EOpConstructUVec4:
     case EOpConstructUint:
@@ -9816,7 +9826,6 @@ TIntermTyped* TParseContext::constructBuiltIn(const TType& type, TOperator op, T
                 intermediate.addBuiltInFunctionCall(node->getLoc(), EOpPackUint2x32, true, node, type);
             return newNode;
         }
-        [[fallthrough]];
     case EOpConstructDVec2:
     case EOpConstructDVec3:
     case EOpConstructDVec4:
@@ -9995,7 +10004,6 @@ TIntermTyped* TParseContext::constructBuiltIn(const TType& type, TOperator op, T
             TIntermTyped* newNode = intermediate.addBuiltInFunctionCall(node->getLoc(), EOpConvPtrToUint64, true, node, type);
             return newNode;
         }
-        [[fallthrough]];
     case EOpConstructU64Vec2:
     case EOpConstructU64Vec3:
     case EOpConstructU64Vec4:
@@ -11040,7 +11048,6 @@ void TParseContext::updateStandaloneQualifierDefaults(const TSourceLoc& loc, con
                     error(loc, "cannot apply to 'out'", TQualifier::getGeometryString(publicType.shaderQualifiers.geometry), "");
                     break;
                 }
-                [[fallthrough]];
             case ElgPoints:
             case ElgLineStrip:
             case ElgTriangleStrip:

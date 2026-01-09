@@ -2659,8 +2659,9 @@ void Builder::setupFunctionDebugInfo(Function* function, const char* name, const
         currentDebugScopeId.pop();
 }
 
-Id Builder::makeDebugFunction([[maybe_unused]] Function* function, Id nameId, Id funcTypeId)
+Id Builder::makeDebugFunction(Function* function, Id nameId, Id funcTypeId)
 {
+    (void)function;
     assert(function != nullptr);
     assert(nameId != 0);
     assert(funcTypeId != 0);
@@ -2780,7 +2781,8 @@ void Builder::enterFunction(Function const* function)
         addInstruction(std::unique_ptr<Instruction>(defInst));
     }
 
-    if (auto linkType = function->getLinkType(); linkType != LinkageType::Max) {
+    auto linkType = function->getLinkType();
+    if (linkType != LinkageType::Max) {
         Id funcId = function->getFuncId();
         addCapability(Capability::Linkage);
         addLinkageDecoration(funcId, function->getExportName(), linkType);

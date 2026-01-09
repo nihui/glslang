@@ -507,8 +507,8 @@ public:
     }
 
     void collectRetargetedSymbols(std::unordered_multimap<std::string, std::string> &out) const {
-        for (const auto &[fromName, toName] : retargetedSymbols)
-            out.insert({std::string{toName}, std::string{fromName}});
+        for (const auto & s : retargetedSymbols)
+            out.insert({std::string{s.second.c_str()}, std::string{s.first.c_str()}});
     }
 
     TSymbol* find(const TString& name) const
@@ -838,7 +838,7 @@ public:
 
     std::unordered_multimap<std::string, std::string> collectBuiltinAlias() {
         std::unordered_multimap<std::string, std::string> allRetargets;
-        for (int level = 0; level <= std::min(currentLevel(), builtinLevel); ++level)
+        for (int level = 0; level <= std::min(currentLevel(), (int)builtinLevel); ++level)
             table[level]->collectRetargetedSymbols(allRetargets);
 
         return allRetargets;
