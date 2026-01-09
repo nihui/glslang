@@ -5175,7 +5175,9 @@ spv::Id TGlslangToSpvTraverser::createSpvVariable(const glslang::TIntermSymbol* 
     if (options.emitNonSemanticShaderDebugInfo && storageClass != spv::StorageClass::Function) {
         // Create variable alias for retargeted symbols if any.
         // Notably, this is only applicable to built-in variables so that it is okay to only use name as the key.
-        auto [itBegin, itEnd] = glslangIntermediate->getBuiltinAliasLookup().equal_range(name);
+        auto itRange = glslangIntermediate->getBuiltinAliasLookup().equal_range(name);
+        auto itBegin = itRange.first;
+        auto itEnd = itRange.second;
         for (auto it = itBegin; it != itEnd; ++it) {
             builder.createDebugGlobalVariable(builder.getDebugType(spvType), it->second.c_str(), var);
         }
@@ -5879,7 +5881,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
             //  + Table lookup during creation of composite debug types. This really shouldn't be necessary.
             if(options.emitNonSemanticShaderDebugInfo) {
                 spv::StructMemberDebugInfo debugInfo{};
-                debugInfo.name = glslangMember.type->getFieldName();
+                debugInfo.name = glslangMember.type->getFieldName().c_str();
                 debugInfo.line = glslangMember.loc.line;
                 debugInfo.column = glslangMember.loc.column;
 

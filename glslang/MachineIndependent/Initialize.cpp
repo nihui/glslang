@@ -515,7 +515,7 @@ void RelateTabledBuiltins(const FunctionT* functions, TSymbolTable& symbolTable)
 // Add declarations for all tables of built-in functions.
 void TBuiltIns::addTabledBuiltins(int version, EProfile profile, const SpvVersion& spvVersion)
 {
-    const auto forEachFunction = [&](TString& decls, const BuiltInFunction* functions) {
+    const auto forEachFunction = [&](TString& decls, const BuiltInFunction* function) {
         while (function->op != EOpNull) {
             if (ValidVersion(*function, version, profile, spvVersion)) {
                 AddTabledBuiltin(decls, *function);
@@ -5078,7 +5078,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                     << t << " data[], uint tensorOperands = 0U, ...);\n";
         }
         ostream << "uint tensorSizeARM(readonly writeonly tensorARM t, uint dim);\n";
-        commonBuiltins.append(ostream.str());
+        commonBuiltins.append(ostream.str().c_str());
     }
 
     if (profile != EEsProfile && version >= 450) {
@@ -7278,7 +7278,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                                                                           false,
                                                                           ms      ? true : false);
 
-                        TString typeName = TString{sampler.getString()};
+                        TString typeName = TString{sampler.getString().c_str()};
 
                         addQueryFunctions(sampler, typeName, version, profile);
                         addImageFunctions(sampler, typeName, version, profile);
@@ -7381,7 +7381,7 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, c
                                                                              ms      ? true : false);
                             }
 
-                            TString typeName = TString{sampler.getString()};
+                            TString typeName = TString{sampler.getString().c_str()};
 
                             if (dim == EsdSubpass) {
                                 addSubpassSampling(sampler, typeName, version, profile);
@@ -7405,7 +7405,7 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, c
                                     // texture types.
                                     sampler.setTexture(sampler.type, sampler.dim, sampler.arrayed, sampler.shadow,
                                                        sampler.ms);
-                                    TString textureTypeName = TString{sampler.getString()};
+                                    TString textureTypeName = TString{sampler.getString().c_str()};
                                     addSamplingFunctions(sampler, textureTypeName, version, profile);
                                     addQueryFunctions(sampler, textureTypeName, version, profile);
                                 }

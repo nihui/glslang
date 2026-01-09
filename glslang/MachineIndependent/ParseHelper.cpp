@@ -43,6 +43,7 @@
 #include "Scan.h"
 
 #include <algorithm>
+#include <limits>
 #include <sys/types.h>
 
 #include "Versions.h"
@@ -1842,9 +1843,20 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
             };
 
             // sizes look like: [scope, rows, cols, use]
-            auto [aRows, aCols, aUse] = getDim(sequence, 0);
-            auto [bRows, bCols, bUse] = getDim(sequence, 1);
-            auto [cRows, cCols, cUse] = getDim(sequence, 2);
+            auto aDim = getDim(sequence, 0);
+            auto aRows = std::get<0>(aDim);
+            auto aCols = std::get<1>(aDim);
+            auto aUse = std::get<2>(aDim);
+
+            auto bDim = getDim(sequence, 1);
+            auto bRows = std::get<0>(bDim);
+            auto bCols = std::get<1>(bDim);
+            auto bUse = std::get<2>(bDim);
+
+            auto cDim = getDim(sequence, 2);
+            auto cRows = std::get<0>(cDim);
+            auto cCols = std::get<1>(cDim);
+            auto cUse = std::get<2>(cDim);
 
             auto toString = [](ArrayDim dim) -> std::string {
                 std::stringstream buf;
