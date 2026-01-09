@@ -821,7 +821,6 @@ void TParseVersions::profileRequires(const TSourceLoc& loc, int profileMask, int
             switch (getExtensionBehavior(extensions[i])) {
             case EBhWarn:
                 infoSink.info.message(EPrefixWarning, ("extension " + TString(extensions[i]) + " is being used for " + featureDesc).c_str(), loc, messages & EShMsgAbsolutePath, messages & EShMsgDisplayErrorColumn);
-                [[fallthrough]];
             case EBhRequire:
             case EBhEnable:
                 okay = true;
