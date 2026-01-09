@@ -1835,10 +1835,10 @@ void TParseContext::handleCoopMat2FunctionCall(const TSourceLoc& loc, const TFun
 
                 if (type.isCoopMatNV()) {
                     // coopmatNV don't encode usage, so provide the correct usage by default
-                    return {size->getArraySize(2), size->getArraySize(3), idx};
+                    return std::tuple<ArrayDim, ArrayDim, int>{size->getArraySize(2), size->getArraySize(3), idx};
                 } else {
                     assert(type.isCoopMatKHR());
-                    return {size->getArraySize(1), size->getArraySize(2), size->getDimSize(3)};
+                    return std::tuple<ArrayDim, ArrayDim, int>{size->getArraySize(1), size->getArraySize(2), size->getDimSize(3)};
                 }
             };
 
