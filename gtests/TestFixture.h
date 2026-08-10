@@ -211,7 +211,9 @@ public:
                 path += headerName;
                 std::replace(path.begin(), path.end(), '\\', '/');
 
-                auto [success, fileContent] = ReadFile(path);
+                auto readResult = ReadFile(path);
+                const bool success = readResult.first;
+                const std::string& fileContent = readResult.second;
                 if (success) {
                     auto buffer = new char[fileContent.size() + 1];
                     std::copy(fileContent.begin(), fileContent.end(), buffer);

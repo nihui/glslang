@@ -30,7 +30,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.10)
 project(glslang)
 
 set(GLSLANG_TESTS_DEFAULT ON) # Can be turned off, below, based on environment.
@@ -144,7 +144,7 @@ else()
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    add_compile_options(-Wall -Wmaybe-uninitialized -Wuninitialized -Wunused -Wunused-local-typedefs -Wimplicit-fallthrough
+    add_compile_options(-Wall -Wmaybe-uninitialized -Wuninitialized -Wunused -Wunused-local-typedefs -Wno-implicit-fallthrough
                         -Wunused-parameter -Wunused-value  -Wunused-variable -Wunused-but-set-parameter -Wunused-but-set-variable)
     if(NOT ENABLE_RTTI)
         add_compile_options(-fno-rtti)
@@ -163,7 +163,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
         endif()
     endif()
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND NOT MSVC)
-    add_compile_options(-Wall -Wuninitialized -Wunused -Wunused-local-typedefs -Wimplicit-fallthrough
+    add_compile_options(-Wall -Wuninitialized -Wunused -Wunused-local-typedefs -Wno-implicit-fallthrough
                         -Wunused-parameter -Wunused-value  -Wunused-variable)
     if(NOT ENABLE_RTTI)
         add_compile_options(-fno-rtti)
@@ -225,8 +225,8 @@ if(ENABLE_GLSLANG_JS)
     endif()
 endif()
 
-# Request C++17
-set(CMAKE_CXX_STANDARD 17)
+# Request C++14
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

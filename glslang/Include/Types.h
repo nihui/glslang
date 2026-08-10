@@ -2755,7 +2755,7 @@ public:
     TString getBasicTypeString() const
     {
         if (basicType == EbtSampler)
-            return TString{sampler.getString()};
+            return TString{sampler.getString().c_str()};
         else
             return getBasicString();
     }

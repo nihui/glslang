@@ -36,6 +36,7 @@
 #ifndef GLSLANG_INCLUDE_DEFER_H
 #define GLSLANG_INCLUDE_DEFER_H
 
+#include <type_traits>
 #include <utility>
 
 namespace glslang {
@@ -45,18 +46,27 @@ namespace glslang {
 template <typename F>
 class Defer {
  public:
-  explicit Defer(F&& f) : f_(std::move(f)) { }
-  Defer(Defer&&) = default;
-  ~Defer() { f_(); } // Run the given function.
+  explicit Defer(F f) : f_(std::move(f)), active_(true) { }
+  Defer(Defer&& other) : f_(std::move(other.f_)), active_(other.active_) { other.active_ = false; }
+  ~Defer() { if (active_) f_(); } // Run the given function.
  private:
   Defer(const Defer&) = delete;
   Defer& operator=(const Defer&) = delete;
   F f_;
+  bool active_;
 };
 
+template <typename F>
+Defer<typename std::decay<F>::type> makeDefer(F&& f)
+{
+  return Defer<typename std::decay<F>::type>(std::forward<F>(f));
+}
+
+#if __cplusplus >= 201703L
 // Template argument deduction guide for Defer.
 template <typename T>
 Defer(T) -> Defer<T>;
+#endif
 
 } // namespace glslang
 

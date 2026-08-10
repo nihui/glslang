@@ -1143,7 +1143,6 @@ void TIntermediate::addBiShapeConversion(TOperator op, TIntermTyped*& lhsNode, T
         // matrix multiply does not change shapes
         if (lhsNode->isMatrix() && rhsNode->isMatrix())
             return;
-        [[fallthrough]];
     case EOpAdd:
     case EOpSub:
     case EOpDiv:
@@ -3573,7 +3572,6 @@ bool TIntermediate::promoteBinary(TIntermBinary& node)
         if (left->getType() == right->getType())
             return true;
 
-        [[fallthrough]];
 
     case EOpMul:
     case EOpMulAssign:
@@ -3767,7 +3765,6 @@ bool TIntermediate::promoteBinary(TIntermBinary& node)
         if ((left->getVectorSize() != right->getVectorSize() || left->getMatrixCols() != right->getMatrixCols() || left->getMatrixRows() != right->getMatrixRows()) &&
             !vectorAndLongVectorMatch)
             return false;
-        [[fallthrough]];
 
     case EOpAdd:
     case EOpSub:

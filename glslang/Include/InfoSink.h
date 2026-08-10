@@ -36,7 +36,11 @@
 #define _INFOSINK_INCLUDED_
 
 #include "../Include/Common.h"
-#if __has_include(<filesystem>)
+#if defined(__has_include)
+#if __cplusplus >= 201703L && __has_include(<filesystem>)
+#include <filesystem>
+#endif
+#elif __cplusplus >= 201703L
 #include <filesystem>
 #endif
 #include <cmath>

@@ -3944,7 +3944,7 @@ bool HlslGrammar::acceptSelectionStatement(TIntermNode*& statement, const TAttri
     // so that something declared in the condition is scoped to the lifetimes
     // of the then-else statements
     parseContext.pushScope();
-    Defer d([this]{ parseContext.popScope(); });
+    auto d = makeDefer([this]{ parseContext.popScope(); });
 
     // LEFT_PAREN expression RIGHT_PAREN
     TIntermTyped* condition;
@@ -4045,7 +4045,7 @@ bool HlslGrammar::acceptIterationStatement(TIntermNode*& statement, const TAttri
             parseContext.pushScope();
             parseContext.nestLooping();
             ++parseContext.controlFlowNestingLevel;
-            Defer d([this]{
+            auto d = makeDefer([this]{
                 parseContext.unnestLooping();
                 parseContext.popScope();
                 --parseContext.controlFlowNestingLevel;
@@ -4073,7 +4073,7 @@ bool HlslGrammar::acceptIterationStatement(TIntermNode*& statement, const TAttri
         {
             parseContext.nestLooping();  // this only needs to work right if no errors
             ++parseContext.controlFlowNestingLevel;
-            Defer d([this]{
+            auto d = makeDefer([this]{
               parseContext.unnestLooping();
               --parseContext.controlFlowNestingLevel;
             });
@@ -4114,7 +4114,7 @@ bool HlslGrammar::acceptIterationStatement(TIntermNode*& statement, const TAttri
         // so that something declared in the condition is scoped to the lifetime
         // of the for sub-statement
         parseContext.pushScope();
-        Defer d([this]{ parseContext.popScope(); });
+        auto d = makeDefer([this]{ parseContext.popScope(); });
 
         // initializer
         TIntermNode* initNode = nullptr;
@@ -4123,7 +4123,7 @@ bool HlslGrammar::acceptIterationStatement(TIntermNode*& statement, const TAttri
 
         parseContext.nestLooping();  // this only needs to work right if no errors
         ++parseContext.controlFlowNestingLevel;
-        Defer d2([this]{
+        auto d2 = makeDefer([this]{
             parseContext.unnestLooping();
             --parseContext.controlFlowNestingLevel;
         });

@@ -378,7 +378,7 @@ void SpirvStream::disassembleInstruction(Id resultId, Id /*typeId*/, Op opCode, 
                 switch (stream[word]) {
                 case 8:  idDescriptor[resultId] = "int8_t"; break;
                 case 16: idDescriptor[resultId] = "int16_t"; break;
-                default: assert(0); [[fallthrough]];
+                default: assert(0);
                 case 32: idDescriptor[resultId] = "int"; break;
                 case 64: idDescriptor[resultId] = "int64_t"; break;
                 }
@@ -392,7 +392,7 @@ void SpirvStream::disassembleInstruction(Id resultId, Id /*typeId*/, Op opCode, 
                     if (numOperands > 1) {
                         switch (stream[word+1]) {
                         default:
-                            assert(0); [[fallthrough]];
+                            assert(0);
                         case (int)spv::FPEncoding::BFloat16KHR:
                             idDescriptor[resultId] = "bfloat16_t";
                             break;
@@ -422,7 +422,7 @@ void SpirvStream::disassembleInstruction(Id resultId, Id /*typeId*/, Op opCode, 
                         idDescriptor[resultId] = "float16_t";
                     }
                     break;
-                default: assert(0); [[fallthrough]];
+                default: assert(0);
                 case 32: idDescriptor[resultId] = "float"; break;
                 case 64: idDescriptor[resultId] = "float64_t"; break;
                 }
