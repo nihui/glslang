@@ -132,8 +132,8 @@ class Builder {
                     {
                         Instruction* constant = key.instruction;
                         size_t num_operands = constant->getNumOperands();
-                        size_t hash = std::hash<Op>()(key.typeClass) * 7 ^
-                            std::hash<Op>()(constant->getOpCode()) * 11 ^
+                        size_t hash = std::hash<unsigned>()(static_cast<unsigned>(key.typeClass)) * 7 ^
+                            std::hash<unsigned>()(static_cast<unsigned>(constant->getOpCode())) * 11 ^
                             std::hash<Id>()(constant->getTypeId()) * 13 ^
                             std::hash<size_t>()(num_operands) * 17;
                         for (size_t i = 0; i < num_operands; ++i) {
@@ -143,8 +143,8 @@ class Builder {
                     }
                 case Key_CompositeConstant:
                     {
-                        size_t hash = std::hash<Op>()(key.typeClass) * 7 ^
-                            std::hash<Op>()(key.opcode) * 11 ^
+                        size_t hash = std::hash<unsigned>()(static_cast<unsigned>(key.typeClass)) * 7 ^
+                            std::hash<unsigned>()(static_cast<unsigned>(key.opcode)) * 11 ^
                             std::hash<Id>()(key.typeId) * 13 ^
                             std::hash<size_t>()(key.numMembers) * 17;
                         for (size_t i = 0; i < key.numMembers; ++i) {
@@ -1379,19 +1379,21 @@ protected:
         // 64/32 bit mix function from MurmurHash3
         inline std::size_t hash_mix(std::size_t h) const {
             if (sizeof(std::size_t) == 8) {
-                h ^= h >> 33;
-                h *= UINT64_C(0xff51afd7ed558ccd);
-                h ^= h >> 33;
-                h *= UINT64_C(0xc4ceb9fe1a85ec53);
-                h ^= h >> 33;
-                return h;
+                std::uint64_t h64 = static_cast<std::uint64_t>(h);
+                h64 ^= h64 >> 33;
+                h64 *= UINT64_C(0xff51afd7ed558ccd);
+                h64 ^= h64 >> 33;
+                h64 *= UINT64_C(0xc4ceb9fe1a85ec53);
+                h64 ^= h64 >> 33;
+                return static_cast<std::size_t>(h64);
             } else {
-                h ^= h >> 16;
-                h *= UINT32_C(0x85ebca6b);
-                h ^= h >> 13;
-                h *= UINT32_C(0xc2b2ae35);
-                h ^= h >> 16;
-                return h;
+                std::uint32_t h32 = static_cast<std::uint32_t>(h);
+                h32 ^= h32 >> 16;
+                h32 *= UINT32_C(0x85ebca6b);
+                h32 ^= h32 >> 13;
+                h32 *= UINT32_C(0xc2b2ae35);
+                h32 ^= h32 >> 16;
+                return static_cast<std::size_t>(h32);
             }
         }
 

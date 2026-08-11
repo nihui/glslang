@@ -42,8 +42,9 @@
 #include <cassert>
 #include <cstdlib>
 
-#include <unordered_set>
 #include <algorithm>
+#include <sstream>
+#include <unordered_set>
 
 #include "SpvBuilder.h"
 #include "spvUtil.h"
@@ -54,6 +55,17 @@
 #endif
 
 namespace spv {
+
+namespace {
+
+std::string makeNonSemanticShaderDebugInfoImportName(unsigned version)
+{
+    std::ostringstream stream;
+    stream << "NonSemantic.Shader.DebugInfo." << version;
+    return stream.str();
+}
+
+} // anonymous namespace
 
 Builder::Builder(unsigned int spvVersion, unsigned int magicNumber, SpvBuildLogger* buildLogger) :
     spvVersion(spvVersion),
@@ -2333,7 +2345,7 @@ Id Builder::importNonSemanticShaderDebugInfoInstructions()
         this->addExtension(spv::E_SPV_KHR_non_semantic_info);
         // Create the import instruction directly so we can save a pointer for later
         // patching by requireNonSemanticShaderDebugInfoVersion().
-        std::string importName = "NonSemantic.Shader.DebugInfo." + std::to_string(nonSemanticShaderDebugInfoVersion);
+        std::string importName = makeNonSemanticShaderDebugInfoImportName(nonSemanticShaderDebugInfoVersion);
         auto* importInst = new Instruction(getUniqueId(), NoType, Op::OpExtInstImport);
         importInst->addStringOperand(importName.c_str());
         module.mapInstruction(importInst);
@@ -2354,7 +2366,7 @@ void Builder::requireNonSemanticShaderDebugInfoVersion(unsigned version)
         // The import instruction was already emitted with an older version string.
         // Rebuild the string operands in place so all referencing OpExtInst instructions
         // automatically pick up the new name without needing new IDs.
-        std::string importName = "NonSemantic.Shader.DebugInfo." + std::to_string(version);
+        std::string importName = makeNonSemanticShaderDebugInfoImportName(version);
         nonSemanticShaderDebugInfoImportInst->clearOperands();
         nonSemanticShaderDebugInfoImportInst->addStringOperand(importName.c_str());
     }
